@@ -1,7 +1,7 @@
 {
   "name": "dsh-antigravity",
-  "version": "0.1.0",
-  "description": "Antigravity (agy) subagent backend for DeepSeek Harness: delegate a task to Google Antigravity over ACP, with an account and quota panel",
+  "version": "0.2.0",
+  "description": "Antigravity (agy) subagent backend for DeepSeek Harness: delegate a task to Google Antigravity, with an account and quota panel",
   "type": "module",
   "license": "MIT",
   "packageManager": "pnpm@11.28.5",
@@ -11,7 +11,7 @@
     "dsh-plugin",
     "antigravity",
     "subagent",
-    "acp"
+    "agy"
   ],
   "main": "lib/index.js",
   "exports": {
@@ -45,11 +45,13 @@
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "verify:route-cache": "node scripts/verify-route-cache.mjs"
+    "verify:route-cache": "node scripts/verify-route-cache.mjs",
+    "verify:print-runner": "node scripts/verify-print-runner.mjs"
   },
   "dependencies": {
-    "@deepseek-ai/dsh-subagent-acp": "^0.2.2-rc.1",
-    "@deepseek-ai/dsh-tool-subagent": "^0.2.2-rc.1"
+    "@deepseek-ai/dsh-tool-subagent": "^0.2.2-rc.1",
+    "@deepseek-ai/dsh-subagent": "^0.2.2-rc.1",
+    "@deepseek-ai/dsh-brand": "^0.2.2-rc.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.1.0",
@@ -63,6 +65,8 @@
     "@types/react": "^18.3.1",
     "react": "^18.2.0",
     "tsdown": "^0.22.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@deepseek-ai/dsh-llm": "^0.2.2-rc.1",
+    "@deepseek-ai/dsh-subprocess": "^0.2.2-rc.1"
   }
 }

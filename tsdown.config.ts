@@ -37,7 +37,7 @@ export default defineConfig([
     outDir: 'lib',
     format: ['esm'],
     platform: 'node',
-    deps: { neverBundle: ['@deepseek-ai/cordis', '@deepseek-ai/schemastery', '@deepseek-ai/dsh-client-connection'] },
+    deps: { neverBundle: ['@deepseek-ai/cordis', '@deepseek-ai/schemastery', '@deepseek-ai/dsh-client-connection', '@deepseek-ai/dsh-subagent'] },
     dts: false,
     clean: false,
     outputOptions: { entryFileNames: 'index.js' },

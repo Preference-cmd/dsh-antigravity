@@ -38,7 +38,10 @@ const scoped = {
   effect: (fn) => fn(),
   connection: { fetch: { register: (registered) => { route = registered; return () => {} } } },
 }
-plugin.apply({ inject: (_dependencies, callback) => callback(scoped) }, { command: binary, refreshMs: 60_000 })
+// Only the browser-surface scope carries the route; the provider scope needs
+// services this fixture does not model.
+const inject = (dependencies, callback) => { if (dependencies.includes('connection')) callback(scoped) }
+plugin.apply({ inject }, plugin.Config({ command: binary, refreshMs: 60_000 }))
 
 const get = async (suffix = '') => {
   const started = Date.now()

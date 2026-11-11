@@ -1,6 +1,6 @@
 # dsh-antigravity
 
-<!-- Bump the first badge with the @deepseek-ai/dsh-subagent-acp peer range. -->
+<!-- Bump the first badge with the @deepseek-ai/dsh-subagent peer range. -->
 [![DeepSeek Harness ≥ 0.2.2-rc.1](https://img.shields.io/badge/DeepSeek_Harness-%E2%89%A5%200.2.2--rc.1-5b6ee1)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)
 [![CI](https://github.com/Preference-cmd/dsh-antigravity/actions/workflows/ci.yml/badge.svg)](https://github.com/Preference-cmd/dsh-antigravity/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/github/license/Preference-cmd/dsh-antigravity)](./LICENSE)
@@ -18,7 +18,7 @@
 dsh plugin --profile web add github:Preference-cmd/dsh-antigravity
 ```
 
-装完重启该 profile。`file:` 与 `github:` 都会把 `@deepseek-ai/dsh-subagent-acp` 等依赖一并装进 profile。
+装完重启该 profile。
 
 本地目录安装与反复改动：
 
@@ -26,20 +26,21 @@ dsh plugin --profile web add github:Preference-cmd/dsh-antigravity
 # 普通本地安装
 dsh plugin --profile web add file:/absolute/path/to/plugins/dsh-antigravity
 
-# 改代码时用 link: 更省事——但 pnpm 不会为链接目录安装它自己的依赖，要补一条
-dsh plugin --profile web add link:/absolute/path/to/plugins/dsh-antigravity \
-                              link:/absolute/path/to/deepseek-harness/packages/subagent/subagent-acp
+# 改代码时用 link: 更省事——但 pnpm 不会为链接目录安装它自己的依赖
+dsh plugin --profile web add link:/absolute/path/to/plugins/dsh-antigravity
 ```
 
 ## 它做了什么
 
-- **`subagent-antigravity`**（宿主侧）：复用 `@deepseek-ai/dsh-subagent-acp`。每次委派 spawn 一个 `agy acp` 进程，新建一个 ACP session，把任务发过去，取回最终答案后回收进程。
+插件自带 provider，不依赖 `@deepseek-ai/dsh-subagent-acp`：每次委派 spawn 一个 `agy` print 模式子进程（`--output-format stream-json`），把答案折叠成一次子智能体结果后回收进程。
+
+- **`subagent-antigravity`**（宿主侧）注册 `antigravity` provider，并同时提供下面那张状态卡的路由。
 - **`subagent_antigravity`**（工具）：模型可见的委派工具。`maxDepth: provider-managed`——递归预算归子智能体自己的运行时管。
-- **`antigravity-status`**（宿主 + 浏览器侧）：在插件自己的详情页底部画一张状态卡——Google 登录状态、按模型族分组的用量限额条、G1 额度，以及手动刷新。
+- **状态卡**（浏览器侧）：在插件详情页底部画 Google 登录状态、按模型族分组的用量限额条、G1 额度，以及手动刷新。
 
-子智能体有自己的模型、mode、工具与配额，与父会话使用的模型无关；两者只共享工作目录。
+子智能体有自己的模型、推理档位、工具与配额，与父会话使用的模型无关；两者只共享工作目录。
 
-状态卡的数据全部来自零 token 的斜杠命令（`agy models`、`/usage`、`/credits`）：宿主用一条已鉴权的 `GET /api/antigravity/status` 暴露它们，缓存 60 秒；ACP 通道本身不报告配额。没有浏览器面的 profile（headless）不会挂载这一行。
+状态卡的数据全部来自零 token 的斜杠命令（`agy models`、`/usage`、`/credits`）：宿主用一条已鉴权的 `GET /api/antigravity/status` 暴露它们，缓存 60 秒。没有浏览器面的 profile（headless）不会挂载这一半。
 
 ## 配置
 
@@ -50,11 +51,10 @@ dsh plugin --profile web add link:/absolute/path/to/plugins/dsh-antigravity \
   config:
     # 默认取 $AGY_BIN，否则 ~/.local/bin/agy
     command: /Users/you/.local/bin/agy
-    # 需要在子智能体首次 prompt 之前固定的选项（见下）
-    configOptions:
-      model: claude-opus-4-6-thinking
-      thought_level: high
-      mode: accept-edits
+    # 固定模型与推理档位；省略则用账号自己的默认
+    model: claude-opus-4-6-thinking
+    effort: high
+    mode: auto
 
 - id: tool-subagent-antigravity
   config:
@@ -64,22 +64,20 @@ dsh plugin --profile web add link:/absolute/path/to/plugins/dsh-antigravity \
 | 字段 | 默认 | 说明 |
 |---|---|---|
 | `command` | `$AGY_BIN` 或 `~/.local/bin/agy` | `agy` 可执行文件；不在 `PATH` 上时用它 |
-| `permission` | `reject` | 只回答真正到达 harness 的权限请求：`reject` 或选择第一个 allow 选项（`allow`） |
-| `configOptions` | 无 | ACP 会话配置项，在第一次 prompt 前应用；被 `agy` 拒绝会让本次委派在启动阶段失败 |
+| `model` | 账号默认 | 固定给每次委派的模型 id，即 `--model` |
+| `effort` | 模型默认 | 推理档位 `--effort`：`low`、`medium`、`high`、`xhigh`、`max` |
+| `mode` | `agy` 默认 | 执行模式 `--mode`：`accept-edits`、`auto`、`plan` |
+| `args` | `[]` | 追加到上述 flag 之后、prompt 之前的其它 `agy` flag |
+| `env` | `{}` | 叠加在已清理凭据的父环境之上的显式子环境 |
+| `providerName` | `antigravity` | 在 `ctx.subagents` 上注册的名字 |
+| `disposeGraceMs` | `3000` | 回收子进程时 SIGTERM 到 SIGKILL 的间隔 |
+| `refreshMs` | `60000` | 状态卡在宿主的缓存时长；`?refresh=1` 绕过 |
 
-`configOptions` 的可用值（本机 `agy` 1.5.x 实测）：
+`model`、`effort`、`mode` 是**CLI flag**，不是会话内协商：`agy` 在启动时就校验组合，不支持的组合会让本次委派立刻失败并给出原文（例如 `--effort is not supported for model "claude-opus-4-6-thinking"`），不会带着默认值静默跑完。
 
-| 配置 id | 取值 |
-|---|---|
-| `model` | `gemini-3.8-flash`、`claude-sonnet-4-6`、`claude-opus-4-6-thinking`、`gpt-oss-120b-medium` |
-| `thought_level` | `low`、`medium`、`high` |
-| `mode` | `default`、`accept-edits`、`plan` |
+本机 `agy` 1.5.x 可用的模型 id：`gemini-3.8-flash`、`claude-sonnet-4-6`、`claude-opus-4-6-thinking`、`gpt-oss-120b-medium`；用 `agy models` 查账号实际的列表。
 
-注意 `agy acp` 自身没有 `--model` / `--mode` 开关，也不能通过 `~/.gemini/antigravity-cli/settings.json` 改变 ACP 会话默认值——要固定模型只能走 `configOptions`。
-
-想同时挂多个模型，复制这两个行、改 `providerName` / `toolName` 即可（一个 provider 一个固定模型）。
-
-状态卡所在的行（`antigravity-status`）只有两个配置项：`command`（同上）与 `refreshMs`（宿主缓存时长，默认 60000）。带 `?refresh=1` 的请求绕过缓存，面板的「刷新」按钮就是这么取的。
+想同时挂多个模型，复制这两行、改 `providerName` / `toolName` / `model` 即可（一个 provider 一个固定模型）。
 
 ## 状态卡
 
@@ -93,16 +91,19 @@ dsh plugin --profile web add link:/absolute/path/to/plugins/dsh-antigravity \
 
 ## 已知限制
 
-1. **权限由 Antigravity 决定是否上报**。`~/.gemini/antigravity-cli/settings.json` 的 `toolPermission` 才是权威；设成 `always-proceed` 时子智能体自主执行文件与命令操作，`permission: reject` 只能拒绝真正到达的请求，不等于只读。
-2. **必须先完成登录**。未登录时 `agy acp` 的行为尚未验证（print 模式会阻塞约 60 秒进入交互式 OAuth），插件不做登录预检。
-3. **上游重试告警会进入正文**。Google 端抖动时 `⚠ API error (attempt 1)…` 会以 assistant 文本到达，可能被当作子智能体的答案。
-4. **冷启动与长尾延迟**。每次委派新建 `agy acp` 进程，`session/new` 约 4–7 秒；单轮耗时受上游影响可能到分钟级。
-5. **无临时会话**。每次委派都会在 `~/.gemini/antigravity-cli/conversations` 留下记录。
-6. **要求 `~/.gemini/antigravity-cli/` 可写**。否则 `agy` 写不进 `bin/agentapi`，所有工具调用失败并在子智能体内部反复重试。
+1. **print 模式不做权限协商**。子进程以 `always-proceed` 运行，文件与命令操作直接执行，harness 拿不到可以拒绝的请求。想收窄就靠 Antigravity 自己的 `~/.gemini/antigravity-cli/settings.json`（`toolPermission`）或 `args` 里的 `--sandbox`。
+2. **只接受纯文本 prompt**。prompt 里的图片/文件块会直接报错，不会被静默丢弃。
+3. **prompt 上限 128 KiB**。print 模式把 prompt 放在命令行上，受宿主 `ARG_MAX` 限制；超限时报明确错误而不是 spawn 失败。
+4. **单轮、不续接**。每次委派都是独立的一轮，没有多轮会话，也不 resume；ACP 路径同样不支持。
+5. **必须先完成登录**。未登录时插件不做预检，委派会在子进程里失败并回传 `agy` 的原文诊断。
+6. **上游重试告警会进入正文**。Google 端抖动时 `⚠ API error (attempt 1)…` 会以 assistant 文本到达，可能被当作子智能体的答案。
+7. **冷启动延迟**。每次委派新建 `agy` 进程，量级为秒；单轮耗时受上游影响可能到分钟级。
+8. **无临时会话**。每次委派都会在 `~/.gemini/antigravity-cli/conversations` 留下记录。
+9. **要求 `~/.gemini/antigravity-cli/` 可写**。否则 `agy` 写不进自己的运行时文件，工具调用会在子智能体内部反复重试。
 
 ## 兼容性
 
-需要 DeepSeek Harness ≥ 0.2.2-rc.1（`@deepseek-ai/dsh-subagent-acp` 与 `@deepseek-ai/dsh-tool-subagent` 在该版本发布）。`configOptions` 需要包含对应支持的后续版本；在更旧的 harness 上该键会被忽略，子智能体退回自身默认，不影响加载。
+需要 DeepSeek Harness ≥ 0.2.2-rc.1（`@deepseek-ai/dsh-subagent`、`@deepseek-ai/dsh-tool-subagent` 等在该版本发布）。插件只用到这些包公开的 provider 契约，不依赖任何 harness 侧的未合并改动。
 
 ## 开发
 
@@ -112,6 +113,7 @@ pnpm run typecheck
 pnpm run build
 node scripts/verify-build-output.mjs   # 确认 lib/ 与源码一致
 node scripts/verify-route-cache.mjs    # 状态路由的缓存/合并/强制重取契约
+node scripts/verify-print-runner.mjs   # provider 的 flag 传递/流折叠/失败/取消契约
 ```
 
 `lib/` 是提交进仓库的构建产物：`dsh plugin add github:…` 直接消费它，不会在安装时构建。CI 因此在每次 push 上跑一遍 typecheck、build，并用 `verify-build-output` 拒绝「改了源码却没重新构建」的提交。
