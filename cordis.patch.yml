@@ -1,0 +1,31 @@
+# One delegation path: `subagent-antigravity` drives a fresh `agy acp` child over
+# ACP for each run, and `subagent_antigravity` is the model-facing tool that
+# starts one. Both packages are dependencies of this plugin, so the profile's
+# hoisted node_modules resolves them next to the harness that loads this layer.
+#
+# `AGY_BIN` overrides the binary path for the current profile; the default is the
+# installer's location for a per-user `agy` install.
+
+- insert:
+    - id: subagent-antigravity
+      name: '@deepseek-ai/dsh-subagent-acp'
+      config:
+        providerName: antigravity
+        command: !!js process.env.AGY_BIN ?? `${process.env.HOME}/.local/bin/agy`
+        args: ['acp']
+        # Antigravity decides whether a tool call asks the client at all: its
+        # settings.json `toolPermission` is authoritative. This policy only
+        # answers the prompts that reach the harness.
+        permission: reject
+
+    - id: tool-subagent-antigravity
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: antigravity
+        toolName: subagent_antigravity
+        maxDepth: provider-managed
+
+    # The browser half reads this row's route from the plugin's bundle page.
+    # A profile without a browser surface (headless) skips it silently.
+    - id: antigravity-status
+      name: 'dsh-antigravity'
