@@ -17,6 +17,15 @@ export const zh = {
   remaining: '剩余',
   resetAt: '重置',
   checkedAt: '更新于',
+  modelsTitle: '模型',
+  modelsHint: '勾选允许委派使用的模型；一个都不勾时全部可用。默认模型用于配置没有固定 model 时的委派。',
+  modelsDefault: '默认',
+  modelsAvailable: '已选',
+  modelsAllAvailable: '全部可用',
+  modelsCount: '个模型',
+  modelsEmpty: '读取不到模型列表，确认 agy 已登录。',
+  modelsSaving: '保存中…',
+  modelsFailed: '读取模型设置失败。',
 } satisfies Record<string, string>
 
 /** Every key the panel translates. */
@@ -38,4 +47,13 @@ export const en: Record<AntigravityKey, string> = {
   remaining: 'remaining',
   resetAt: 'resets',
   checkedAt: 'Updated',
+  modelsTitle: 'Models',
+  modelsHint: 'Checked models may be used for delegation; with none checked every model is available. The default model applies when the deployment config does not pin one.',
+  modelsDefault: 'Default',
+  modelsAvailable: 'selected',
+  modelsAllAvailable: 'all available',
+  modelsCount: 'models',
+  modelsEmpty: 'No model list came back. Check that agy is signed in.',
+  modelsSaving: 'Saving…',
+  modelsFailed: 'Could not read the model settings.',
 }

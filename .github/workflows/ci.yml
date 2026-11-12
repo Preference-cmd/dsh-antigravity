@@ -32,3 +32,5 @@ jobs:
         run: node scripts/verify-route-cache.mjs
       - name: Print-mode provider contract
         run: node scripts/verify-print-runner.mjs
+      - name: Model selection contract
+        run: node scripts/verify-model-settings.mjs

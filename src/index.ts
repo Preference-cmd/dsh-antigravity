@@ -23,8 +23,14 @@ import {
   type AntigravityMode,
 } from './provider.ts'
 import { MAX_TIMER_DELAY_MS } from './print.ts'
-import { STATUS_PATH, type AntigravityStatus } from './protocol.ts'
-import { defaultCommand, readAntigravityStatus } from './status.ts'
+import {
+  SETTINGS_PATH,
+  STATUS_PATH,
+  type AntigravitySettingsPayload,
+  type AntigravityStatus,
+} from './protocol.ts'
+import { readSettings, settingsPath, validateSelection, writeSettings } from './settings.ts'
+import { defaultCommand, readAntigravityStatus, readModels } from './status.ts'
 
 export const name = 'dsh-antigravity'
 
@@ -43,6 +49,8 @@ export interface Config {
   command?: string
   /** Cache lifetime for one probe, in milliseconds; a `refresh` query parameter bypasses it. */
   refreshMs: number
+  /** Document holding the model selection; defaults to the plugin's file under the DSH home. */
+  settingsFile?: string
   /** Registry name on `ctx.subagents`. */
   providerName: string
   /** Model id fixed for every delegated run; omitted to inherit the account default. */
@@ -62,6 +70,7 @@ export interface Config {
 export const Config: z<Config> = z.object({
   command: z.string(),
   refreshMs: z.natural().default(60_000),
+  settingsFile: z.string().min(1),
   providerName: z.string().min(1).default(PROVIDER_NAME),
   model: z.string().min(1),
   mode: z.union([...ANTIGRAVITY_MODES]),
@@ -78,6 +87,7 @@ export const Config: z<Config> = z.object({
  */
 export function apply(ctx: Context, config: Config): void {
   const command = config.command ?? defaultCommand()
+  const settingsFile = config.settingsFile ?? settingsPath()
   if (config.disposeGraceMs <= 0 || config.disposeGraceMs > MAX_TIMER_DELAY_MS) {
     throw new Error(`dsh-antigravity: disposeGraceMs must be a positive integer no greater than ${MAX_TIMER_DELAY_MS}`)
   }
@@ -94,6 +104,7 @@ export function apply(ctx: Context, config: Config): void {
       args: config.args,
       env: config.env,
       disposeGraceMs: config.disposeGraceMs,
+      readSelection: () => readSettings(settingsFile),
     })
   })
 
@@ -119,5 +130,37 @@ export function apply(ctx: Context, config: Config): void {
       requestBody: 'buffered',
       fetch: async (request: Request) => Response.json(await read(new URL(request.url).searchParams.has('refresh'))),
     }), 'antigravity-status: read route')
+
+    const selectionPayload = async (): Promise<AntigravitySettingsPayload> => {
+      const models = await readModels(command)
+      const stored = readSettings(settingsFile)
+      return {
+        available: stored.available,
+        ...stored.defaultModel === undefined ? {} : { defaultModel: stored.defaultModel },
+        models: models ?? [],
+        ...models === undefined ? { detail: 'models-unavailable' } : {},
+      }
+    }
+    scoped.effect(() => scoped.connection.fetch.register({
+      path: SETTINGS_PATH,
+      methods: ['GET', 'POST'],
+      requestBody: 'buffered',
+      fetch: async (request: Request) => {
+        if (request.method === 'GET') return Response.json(await selectionPayload())
+        let body: unknown
+        try {
+          body = await request.json()
+        } catch {
+          return Response.json({ error: 'dsh-antigravity: the request body is not valid JSON' }, { status: 400 })
+        }
+        const models = await readModels(command)
+        try {
+          writeSettings(validateSelection(body, models?.map(model => model.id)), settingsFile)
+        } catch (error: unknown) {
+          return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 400 })
+        }
+        return Response.json(await selectionPayload())
+      },
+    }), 'antigravity-settings: read and write route')
   })
 }

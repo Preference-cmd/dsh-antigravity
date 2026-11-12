@@ -1,6 +1,6 @@
 {
   "name": "dsh-antigravity",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Antigravity (agy) subagent backend for DeepSeek Harness: delegate a task to Google Antigravity, with an account and quota panel",
   "type": "module",
   "license": "MIT",
@@ -46,12 +46,14 @@
     "build": "tsdown",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "verify:route-cache": "node scripts/verify-route-cache.mjs",
-    "verify:print-runner": "node scripts/verify-print-runner.mjs"
+    "verify:print-runner": "node scripts/verify-print-runner.mjs",
+    "verify:model-settings": "node scripts/verify-model-settings.mjs"
   },
   "dependencies": {
-    "@deepseek-ai/dsh-tool-subagent": "^0.2.2-rc.1",
+    "@deepseek-ai/dsh-brand": "^0.2.2-rc.1",
+    "@deepseek-ai/dsh-home-paths": "^0.2.2-rc.1",
     "@deepseek-ai/dsh-subagent": "^0.2.2-rc.1",
-    "@deepseek-ai/dsh-brand": "^0.2.2-rc.1"
+    "@deepseek-ai/dsh-tool-subagent": "^0.2.2-rc.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.1.0",

@@ -11,6 +11,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
+import { ModelSettings } from './ModelSettings.tsx'
 import { StatusPanel } from './StatusPanel.tsx'
 import { NS, en, zh, type AntigravityKey } from './locales.ts'
 
@@ -33,4 +34,9 @@ export function apply(ctx: Context): void {
     id: 'antigravity-status',
     locale: NS,
   }, StatusPanel))
+  ctx.slots.inject('plugins.detail.section', () => ctx.slots.register({
+    name: 'plugins.detail.section',
+    id: 'antigravity-models',
+    locale: NS,
+  }, ModelSettings))
 }

@@ -33,15 +33,18 @@ const invocations = () => {
   }
 }
 
-let route
+// Both halves register a route on this scope; keep them by path so the probe
+// under test is unambiguous.
+const routes = new Map()
 const scoped = {
   effect: (fn) => fn(),
-  connection: { fetch: { register: (registered) => { route = registered; return () => {} } } },
+  connection: { fetch: { register: (registered) => { routes.set(registered.path, registered); return () => {} } } },
 }
 // Only the browser-surface scope carries the route; the provider scope needs
 // services this fixture does not model.
 const inject = (dependencies, callback) => { if (dependencies.includes('connection')) callback(scoped) }
 plugin.apply({ inject }, plugin.Config({ command: binary, refreshMs: 60_000 }))
+const route = routes.get('/api/antigravity/status')
 
 const get = async (suffix = '') => {
   const started = Date.now()

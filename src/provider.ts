@@ -18,6 +18,7 @@ import {
   type SubagentRun,
 } from '@deepseek-ai/dsh-subagent'
 import { startPrintRun, type PrintRunSpec } from './print.ts'
+import type { StoredSettings } from './settings.ts'
 
 /** Provider name the model-facing tool refers to. */
 export const PROVIDER_NAME = 'antigravity'
@@ -52,6 +53,8 @@ export interface ProviderConfig {
   readonly env: Record<string, string>
   /** Bounded teardown grace for the managed process range. */
   readonly disposeGraceMs: number
+  /** The plugin's own selection, read on every start so a settings change applies to the next run. */
+  readonly readSelection: () => StoredSettings
 }
 
 /**
@@ -80,6 +83,24 @@ class AntigravityProvider implements SubagentProvider {
     private readonly config: ProviderConfig,
   ) {}
 
+  /**
+   * Pick the model this run uses: the deployment pin wins, then the plugin's
+   * selected default. A selection that excludes the effective model is a
+   * configuration error rather than a silently ignored toggle.
+   * @returns the model id, or undefined to inherit the account default.
+   * @throws when the effective model is outside the available set.
+   */
+  private resolveModel(): string | undefined {
+    const selection = this.config.readSelection()
+    const model = this.config.model ?? selection.defaultModel
+    if (model !== undefined && selection.available.length > 0 && !selection.available.includes(model)) {
+      throw new Error(
+        `dsh-antigravity: model "${model}" is not among the plugin's available models; update the model settings on the plugin page`,
+      )
+    }
+    return model
+  }
+
   async start(request: ResolvedSubagentStartRequest): Promise<SubagentRun> {
     let cwd: string
     try {
@@ -91,9 +112,10 @@ class AntigravityProvider implements SubagentProvider {
     if (request.signal.aborted) {
       throw new Error('dsh-antigravity: request was aborted before the agy child started')
     }
+    const model = this.resolveModel()
     const spec: PrintRunSpec = {
       command: this.config.command,
-      args: deploymentArgs(this.config),
+      args: deploymentArgs({ ...this.config, ...model === undefined ? {} : { model } }),
       cwd,
       env: this.config.env,
       disposeGraceMs: this.config.disposeGraceMs,

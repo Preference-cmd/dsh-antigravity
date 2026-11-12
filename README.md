@@ -46,12 +46,18 @@ dsh plugin --profile web add github:Preference-cmd/dsh-antigravity
 | `providerName` | `antigravity` | 在 `ctx.subagents` 上注册的名字 |
 | `disposeGraceMs` | `3000` | 回收子进程时 SIGTERM 到 SIGKILL 的间隔 |
 | `refreshMs` | `60000` | 状态卡在宿主的缓存时长；`?refresh=1` 强制重取 |
+| `settingsFile` | `~/.dsh/storages/dsh-antigravity.json` | 面板保存的模型选择存放处 |
 
 `model`、`effort`、`mode` 是 CLI flag，不是会话内协商：`agy` 在启动时校验组合，不支持的组合会让本次委派当场失败并回传原文（例如 `--effort is not supported for model …`），不会带着默认值静默跑完。
 
-## 状态卡
+## 插件详情页
 
-插件详情页底部展示登录状态、每个模型族的每周与 5 小时额度、G1 credits。数据来自零 token 的斜杠命令（`agy models`、`/usage`、`/credits`），宿主缓存 60 秒；未登录时直接提示去终端登录，不会拿一次模型调用去探测。文案与时间跟随 Harness 的语言设置。
+页面底部有两块，都写在本机、跨会话生效：
+
+- **账号与额度**：登录状态、每个模型族的每周与 5 小时额度、G1 credits。数据来自零 token 的斜杠命令（`agy models`、`/usage`、`/credits`），宿主缓存 60 秒；未登录时直接提示去终端登录，不会拿一次模型调用去探测。
+- **模型**：列出 `agy models` 的结果，勾选允许委派使用的模型，再单选一个默认模型。一个都不勾表示全部可用；默认模型只在配置没有固定 `model` 时生效，配置里写死的 `model` 优先。改动写进宿主文档，下一次委派就生效，不用重启。
+
+文案与时间跟随 Harness 的语言设置。
 
 ## 已知限制
 
@@ -69,6 +75,7 @@ pnpm install && pnpm run typecheck && pnpm run build
 node scripts/verify-build-output.mjs   # lib/ 与源码一致
 node scripts/verify-route-cache.mjs    # 状态路由的缓存与强制重取
 node scripts/verify-print-runner.mjs   # flag 传递、流折叠、失败与取消
+node scripts/verify-model-settings.mjs # 模型列表解析、选择校验、默认模型生效
 ```
 
 `lib/` 是提交进仓库的构建产物：`dsh plugin add github:…` 直接消费它，不会在安装时构建。CI 因此在每次 push 上跑 typecheck、build，并用 `verify-build-output` 拒绝「改了源码却没重新构建」的提交。

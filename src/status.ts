@@ -12,7 +12,8 @@
 import { execFile } from 'node:child_process'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import type { AntigravityBucket, AntigravityQuotaGroup, AntigravityStatus } from './protocol.ts'
+import type { AntigravityBucket, AntigravityModel, AntigravityQuotaGroup, AntigravityStatus } from './protocol.ts'
+import { parseModels } from './settings.ts'
 
 /** Default binary location: the per-user install `agy` documents. */
 export function defaultCommand(): string {
@@ -62,6 +63,17 @@ async function readSlash(command: string, slash: string): Promise<Record<string,
   } catch {
     return undefined
   }
+}
+
+/**
+ * List the models the account offers.
+ * @param command - the `agy` executable.
+ * @returns the parsed models, or undefined when the CLI could not answer.
+ */
+export async function readModels(command: string): Promise<AntigravityModel[] | undefined> {
+  const outcome = await run(command, ['models'], 15_000)
+  if (outcome.kind !== 'ok') return undefined
+  return parseModels(outcome.stdout)
 }
 
 /** Read one nested object path without assuming the CLI's full envelope. */
