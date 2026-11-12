@@ -12,7 +12,7 @@
 
 ![插件详情页的状态卡：Google 登录状态与按模型族分组的额度](docs/images/settings.png)
 
-![一次真实委派：subagent_antigravity 的工具调用与子智能体答复](docs/images/subagent-run.png)
+![会话里的子智能体面板：两次 Antigravity 委派（agent-1、agent-2）与它们的结果](docs/images/subagents.png)
 
 ## 安装
 
