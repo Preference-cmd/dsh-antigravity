@@ -65,11 +65,18 @@ mount({})
 
 /** A real child behind the subprocess-handle contract the runner reads. */
 function spawnHandle(spec) {
+  // Detached so termination reaches the whole process range, the way the seam's
+  // providers signal their managed group: a grandchild that outlived a bare
+  // SIGTERM would keep the pipes open and stall `close` until its own exit.
   const child = spawn(spec.argv[0], spec.argv.slice(1), {
     cwd: spec.cwd,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, ...spec.env },
+    detached: true,
   })
+  const signal = (name) => {
+    try { process.kill(-child.pid, name) } catch { /* the range already exited */ }
+  }
   let escalation
   let terminated = false
   const done = new Promise((resolve, reject) => {
@@ -89,8 +96,8 @@ function spawnHandle(spec) {
     terminate: () => {
       if (terminated) return
       terminated = true
-      child.kill('SIGTERM')
-      escalation = setTimeout(() => { if (child.exitCode === null) child.kill('SIGKILL') }, spec.graceMs)
+      signal('SIGTERM')
+      escalation = setTimeout(() => signal('SIGKILL'), spec.graceMs)
       escalation.unref()
     },
     waitForExit: async (signal) => {

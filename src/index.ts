@@ -22,6 +22,7 @@ import {
   type AntigravityEffort,
   type AntigravityMode,
 } from './provider.ts'
+import { MAX_TIMER_DELAY_MS } from './print.ts'
 import { STATUS_PATH, type AntigravityStatus } from './protocol.ts'
 import { defaultCommand, readAntigravityStatus } from './status.ts'
 
@@ -35,9 +36,6 @@ export { STATUS_PATH }
  * therefore mounts inside its own injection scope.
  */
 export const inject: string[] = []
-
-/** Milliseconds a teardown may wait before the managed range is declared live. */
-const MAX_TIMER_DELAY_MS = 2_147_483_647
 
 /** Plugin config: the binary, the delegation defaults, and the probe cache. */
 export interface Config {

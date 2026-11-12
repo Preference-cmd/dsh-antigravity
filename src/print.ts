@@ -31,6 +31,16 @@ import {
  */
 const MAX_PROMPT_BYTES = 128 * 1024
 
+/** Node's maximum timer delay; also the ceiling for one bounded exit wait. */
+export const MAX_TIMER_DELAY_MS = 2_147_483_647
+
+/**
+ * Extra wait beyond the provider's termination grace. The subprocess contract
+ * lets a provider spend the whole `graceMs` escalating, so waiting exactly that
+ * long can observe a range that is still being terminated.
+ */
+const EXIT_MARGIN_MS = 1_000
+
 /** The `result` payload of the last stream-json event. */
 interface PrintTerminalEvent {
   readonly status?: string | undefined
@@ -228,9 +238,10 @@ export async function startPrintRun(request: SubagentStartRequest, spec: PrintRu
     requestCancel,
     teardown: async () => {
       child.terminate()
-      const exited = await child.waitForExit(AbortSignal.timeout(Math.ceil(spec.disposeGraceMs)))
+      const deadline = Math.min(MAX_TIMER_DELAY_MS, Math.ceil(spec.disposeGraceMs) + EXIT_MARGIN_MS)
+      const exited = await child.waitForExit(AbortSignal.timeout(deadline))
       if (!exited) {
-        throw new Error(`dsh-antigravity: agy did not exit within ${spec.disposeGraceMs}ms; the process range is still live`)
+        throw new Error(`dsh-antigravity: agy did not exit within ${deadline}ms; the process range is still live`)
       }
     },
   })
