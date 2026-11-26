@@ -1,7 +1,7 @@
 {
   "name": "dsh-antigravity",
   "version": "0.3.0",
-  "description": "Antigravity (agy) subagent backend for DeepSeek Harness: delegate a task to Google Antigravity, with an account and quota panel",
+  "description": "Antigravity (agy) subagent backend for DeepSeek Harness: delegate a task to Google Antigravity through its agy print mode (-p), with an account and quota panel",
   "type": "module",
   "license": "MIT",
   "packageManager": "pnpm@11.28.5",
