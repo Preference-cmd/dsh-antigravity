@@ -34,3 +34,18 @@ jobs:
         run: node scripts/verify-print-runner.mjs
       - name: Model selection contract
         run: node scripts/verify-model-settings.mjs
+
+  version-matrix:
+    name: typecheck against every supported harness version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The matrix pins each candidate through pnpm overrides, installs, and
+      # typechecks the source against the published types.
+      - run: node scripts/verify-version-matrix.mjs
