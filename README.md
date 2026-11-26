@@ -1,12 +1,12 @@
 # dsh-antigravity
 
-<!-- Bump the first badge with the @deepseek-ai/dsh-subagent peer range. -->
+<!-- Bump the first badge with the @deepseek-ai/dsh-subagent dependency floor. -->
 [![DeepSeek Harness ≥ 0.2.2-rc.1](https://img.shields.io/badge/DeepSeek_Harness-%E2%89%A5%200.2.2--rc.1-5b6ee1)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)
 [![CI](https://github.com/Preference-cmd/dsh-antigravity/actions/workflows/ci.yml/badge.svg)](https://github.com/Preference-cmd/dsh-antigravity/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/github/license/Preference-cmd/dsh-antigravity)](./LICENSE)
 
 <!-- 最近一次验证的 DeepSeek Harness 版本。 -->
-最近一次验证：DeepSeek Harness 0.2.2-rc.1，`agy` 1.5.5。
+最近一次验证：DeepSeek Harness 0.2.3-alpha.2，`agy` 1.5.5。
 
 模型通过 `subagent_antigravity` 工具把任务委派给本机的 Google Antigravity（`agy`）。子智能体在自己的进程里跑完整一轮，只把最终答案交回父会话，工具调用过程不进入父会话上下文；它有独立的模型、工具与配额，与父会话只共享工作目录。
 
@@ -68,6 +68,12 @@ dsh plugin --profile web add github:Preference-cmd/dsh-antigravity
 5. **上游重试告警会进入正文**：Google 端抖动时 `⚠ API error (attempt 1)…` 会以 assistant 文本到达，可能被当成答案。
 6. **每次委派新建 `agy` 进程**（冷启动秒级），并在 `~/.gemini/antigravity-cli/conversations` 留下记录；该目录不可写时工具调用会在子智能体内部反复重试。
 
+## 兼容性
+
+插件的运行时依赖声明为 `@deepseek-ai/dsh-*`：`^0.2.2-rc.1 || ^0.2.3-alpha.1`，开发期的 Cordis 为 `^4.2.0-alpha.1`、Schemastery 为 `^3.20.0-alpha.1`。`scripts/verify-version-matrix.mjs` 把依赖逐版本钉到候选宿主再跑 typecheck：0.2.2-rc.1 配 Cordis 4.1.0 与 Schemastery 3.19.0，0.2.3-alpha.2 配 Cordis 4.2.0-alpha.1 与 Schemastery 3.20.0-alpha.1；CI 的 `version-matrix` 作业在每次推送与 PR 上固定这一结论。
+
+依赖区间按 semver 的预发布规则分段写：带预发布标签的版本只能被同一 [major, minor, patch] 元组上的比较符满足，所以 `^0.2.2-rc.1` 并不包含 `0.2.3-alpha.2`，`^4.1.0` 也不包含 `4.2.0-alpha.1`；`^0.2.3-alpha.1` 以 0.2.3 线最早的 alpha 为锚，因而同时放行 `0.2.3-alpha.2`。
+
 ## 开发
 
 ```sh
@@ -76,6 +82,7 @@ node scripts/verify-build-output.mjs   # lib/ 与源码一致
 node scripts/verify-route-cache.mjs    # 状态路由的缓存与强制重取
 node scripts/verify-print-runner.mjs   # flag 传递、流折叠、失败与取消
 node scripts/verify-model-settings.mjs # 模型列表解析、选择校验、默认模型生效
+node scripts/verify-version-matrix.mjs # 对每个受支持的 harness 版本跑 typecheck
 ```
 
 `lib/` 是提交进仓库的构建产物：`dsh plugin add github:…` 直接消费它，不会在安装时构建。CI 因此在每次 push 上跑 typecheck、build，并用 `verify-build-output` 拒绝「改了源码却没重新构建」的提交。
