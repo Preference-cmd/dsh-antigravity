@@ -22,7 +22,7 @@
 dsh plugin --profile web add github:Preference-cmd/dsh-antigravity
 ```
 
-装完重启该 profile。插件自带 provider，不依赖 `@deepseek-ai/dsh-subagent-acp`：每次委派只 spawn 一个 `agy` 打印模式子进程（`--output-format stream-json`）。
+装完重启该 profile。插件自带 provider，不走 ACP，也不依赖 `@deepseek-ai/dsh-subagent-acp`：每次委派只 spawn 一个 `agy -p` 打印模式子进程（`--output-format stream-json`），一轮一个进程，父会话只拿最终结果。
 
 ## 配置
 
